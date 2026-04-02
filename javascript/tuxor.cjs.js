@@ -2,7 +2,7 @@
  * TUXOR v1.0 — Operator-Based Dual-Hash Authentication Algorithm
  * Reference implementation in JavaScript (CommonJS for Node.js)
  *
- * @author Bernardo Sanchez Gutierrez
+ * @author Bernardo Sanchez Gutierrez <tuxor.max@gmail.com>
  * @license GPL-3.0
  */
 

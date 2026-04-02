@@ -5,7 +5,7 @@
  * Reference implementation in PHP (no external extensions required)
  * Uses split 32-bit arithmetic for cross-platform consistency
  *
- * @author Bernardo Sanchez Gutierrez
+ * @author Bernardo Sanchez Gutierrez <tuxor.max@gmail.com>
  * @license GPL-3.0
  */
 

@@ -1,10 +1,19 @@
 # TUXOR
 
 **Operator-Based Dual-Hash Authentication Algorithm**
+**Algoritmo de Autenticación Dual-Hash Basado en Operadores**
+
+---
+
+[English](#english) | [Español](#español)
+
+---
+
+## English
 
 TUXOR is an authentication algorithm where users embed mathematical operators within their credentials. Both the identity (username) and secret (password) must contain at least one operator symbol. The system combines the hashed inputs using those operators and stores only the final result — the **tuxor**. No username or password is ever stored.
 
-## How It Works
+### How It Works
 
 ```
 Identity:  +alice^
@@ -24,7 +33,7 @@ Secret:    *MyPassword#
 
 Only the tuxor is stored. On login, the system recomputes it and compares.
 
-## Valid Operators (10)
+### Valid Operators (10)
 
 | Symbol | Operation | Type |
 |--------|-----------|------|
@@ -50,14 +59,14 @@ alice*        ← suffix only
 
 **Both** the identity and the secret must contain at least one operator.
 
-## Input Requirements
+### Input Requirements
 
 - **Identity:** At least 1 operator symbol + at least 1 character of clean text
 - **Secret:** At least 1 operator symbol + at least 1 character of clean text
 - Operators must be at the start and/or end — not in the middle
 - The clean text (without operators) is what gets hashed
 
-## Security Properties
+### Security Properties
 
 - **Nothing stored:** No username, no password — only the tuxor
 - **Three-factor knowledge:** Attacker must guess identity + secret + operators
@@ -65,7 +74,7 @@ alice*        ← suffix only
 - **Operator entropy:** 10 symbols across multiple positions add ~13-20 bits
 - **Collision resistance:** Inherits SHA-256's 256-bit security
 
-## Account Recovery
+### Account Recovery
 
 Since the tuxor is non-reversible, recovery requires a full credential reset via a registered **recovery contact** — either an email address or phone number:
 
@@ -76,9 +85,9 @@ recovery: "+5214421234567"      → phone detected → sends SMS/code
 
 The system auto-detects the type. On recovery, the user sets entirely new credentials.
 
-## Quick Start
+### Quick Start
 
-### PHP
+#### PHP
 
 ```php
 require_once 'php/Tuxor.php';
@@ -95,7 +104,7 @@ Tuxor::validate('+alice^');  // true
 Tuxor::validate('alice');    // false
 ```
 
-### JavaScript
+#### JavaScript
 
 ```javascript
 import { compute, verify, validate } from './javascript/tuxor.js';
@@ -111,7 +120,7 @@ validate('+alice^');  // true
 validate('alice');    // false
 ```
 
-### Python
+#### Python
 
 ```python
 from python.tuxor import compute, verify, validate
@@ -127,10 +136,10 @@ validate('+alice^')  # True
 validate('alice')    # False
 ```
 
-## Running Tests
+### Running Tests
 
 ```bash
-# PHP (requires bcmath extension)
+# PHP
 php tests/test.php
 
 # Python
@@ -140,21 +149,173 @@ python3 tests/test.py
 node tests/test.js
 ```
 
-## Specification
-
-See [SPEC.md](SPEC.md) for the complete formal specification, including the algorithm details, operator definitions, test vectors, and security analysis.
-
-## Recommendations
+### Recommendations
 
 1. Apply **bcrypt** or **Argon2** to the final tuxor before storage for additional brute-force resistance
 2. Implement **rate limiting** at the application level
 3. Always use **TLS/HTTPS** for credential transmission
 4. Require at least **2 operators** total across both inputs
 
-## License
+---
+
+## Español
+
+TUXOR es un algoritmo de autenticación donde los usuarios insertan operadores matemáticos dentro de sus credenciales. Tanto la identidad (usuario) como el secreto (contraseña) deben contener al menos un símbolo operador. El sistema combina los hashes de ambas entradas usando esos operadores y almacena solo el resultado final — el **tuxor**. Nunca se guarda el usuario ni la contraseña.
+
+### Cómo Funciona
+
+```
+Identidad: +alice^
+Secreto:   *MiClave#
+
+1. Extraer operadores:  [+, ^, *, #]    (de ambas entradas)
+2. Remover operadores:  "alice", "MiClave"
+3. SHA-256 a cada uno:  hash_i, hash_s  (64 caracteres hex cada uno)
+4. Dividir en 4 bloques de 16 caracteres hex (enteros de 64 bits)
+5. Aplicar operadores cíclicamente:
+     Bloque 0: hash_i[0]  +  hash_s[0]
+     Bloque 1: hash_i[1]  ^  hash_s[1]
+     Bloque 2: hash_i[2]  *  hash_s[2]
+     Bloque 3: hash_i[3]  #  hash_s[3]
+6. Concatenar resultados → SHA-256 → tuxor (64 caracteres hex)
+```
+
+Solo se almacena el tuxor. Al iniciar sesión, el sistema lo recalcula y compara.
+
+### Operadores Válidos (10)
+
+| Símbolo | Operación | Tipo |
+|---------|-----------|------|
+| `+` | Suma | Aritmético |
+| `-` | Resta | Aritmético |
+| `*` | Multiplicación | Aritmético |
+| `%` | Módulo | Aritmético |
+| `^` | XOR | Bit a bit |
+| `&` | AND | Bit a bit |
+| `\|` | OR | Bit a bit |
+| `<` | Rotación izquierda | Desplazamiento |
+| `>` | Rotación derecha | Desplazamiento |
+| `#` | Re-Hash | Especial |
+
+Los operadores van al **inicio** y/o **final** de cada entrada:
+
+```
++alice        ← solo prefijo
+alice*        ← solo sufijo
++alice^       ← prefijo + sufijo
++-alice*>     ← múltiples prefijos + múltiples sufijos
+```
+
+**Tanto** la identidad como el secreto deben contener al menos un operador.
+
+### Requisitos de Entrada
+
+- **Identidad:** Al menos 1 símbolo operador + al menos 1 carácter de texto limpio
+- **Secreto:** Al menos 1 símbolo operador + al menos 1 carácter de texto limpio
+- Los operadores deben estar al inicio y/o final — no en medio
+- El texto limpio (sin operadores) es lo que se hashea
+
+### Propiedades de Seguridad
+
+- **Nada almacenado:** Ni usuario ni contraseña — solo el tuxor
+- **Conocimiento de tres factores:** El atacante debe adivinar identidad + secreto + operadores
+- **No reversible:** No se puede descomponer un tuxor en sus entradas originales
+- **Entropía de operadores:** 10 símbolos en múltiples posiciones agregan ~13-20 bits
+- **Resistencia a colisiones:** Hereda la seguridad de 256 bits de SHA-256
+
+### Recuperación de Cuenta
+
+Como el tuxor no es reversible, la recuperación requiere un restablecimiento completo de credenciales mediante un **contacto de recuperación** registrado — ya sea correo electrónico o número telefónico:
+
+```
+recuperacion: "usuario@ejemplo.com"  → correo detectado → envía enlace
+recuperacion: "+5214421234567"       → teléfono detectado → envía SMS/código
+```
+
+El sistema auto-detecta el tipo. Al recuperar, el usuario define credenciales completamente nuevas.
+
+### Uso Rápido
+
+#### PHP
+
+```php
+require_once 'php/Tuxor.php';
+
+// Registro
+$tuxor = Tuxor::compute('+alice^', '*MiClave#');
+// Guardar $tuxor en la base de datos
+
+// Login
+$valido = Tuxor::verify('+alice^', '*MiClave#', $tuxorAlmacenado);
+
+// Validar que la entrada tiene operadores
+Tuxor::validate('+alice^');  // true
+Tuxor::validate('alice');    // false
+```
+
+#### JavaScript
+
+```javascript
+import { compute, verify, validate } from './javascript/tuxor.js';
+
+// Registro
+const tuxor = await compute('+alice^', '*MiClave#');
+
+// Login
+const valido = await verify('+alice^', '*MiClave#', tuxorAlmacenado);
+
+// Validar
+validate('+alice^');  // true
+validate('alice');    // false
+```
+
+#### Python
+
+```python
+from python.tuxor import compute, verify, validate
+
+# Registro
+tuxor = compute('+alice^', '*MiClave#')
+
+# Login
+valido = verify('+alice^', '*MiClave#', tuxor_almacenado)
+
+# Validar
+validate('+alice^')  # True
+validate('alice')    # False
+```
+
+### Ejecutar Tests
+
+```bash
+# PHP
+php tests/test.php
+
+# Python
+python3 tests/test.py
+
+# JavaScript (Node.js 16+)
+node tests/test.js
+```
+
+### Recomendaciones
+
+1. Aplicar **bcrypt** o **Argon2** al tuxor final antes de almacenarlo para resistencia adicional contra fuerza bruta
+2. Implementar **límite de intentos** (rate limiting) a nivel de aplicación
+3. Siempre usar **TLS/HTTPS** para la transmisión de credenciales
+4. Requerir al menos **2 operadores** en total entre ambas entradas
+
+---
+
+## Specification / Especificación
+
+See [SPEC.md](SPEC.md) for the complete formal specification.
+Consulta [SPEC.md](SPEC.md) para la especificación formal completa.
+
+## License / Licencia
 
 GPL-3.0
 
-## Author
+## Author / Autor
 
-Bernardo Sanchez Gutierrez
+**Bernardo Sanchez Gutierrez** — tuxor.max@gmail.com
