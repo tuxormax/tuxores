@@ -31,7 +31,18 @@ async function sha256(message) {
  * Parse an input string: extract prefix/suffix operators and clean text
  */
 function parse(input) {
-    const chars = [...input];
+    let chars = [...input];
+    let include = false;
+
+    // Detect inclusion modifier @ at start or end
+    if (chars.length > 0 && chars[0] === '@') {
+        include = true;
+        chars = chars.slice(1);
+    } else if (chars.length > 0 && chars[chars.length - 1] === '@') {
+        include = true;
+        chars = chars.slice(0, -1);
+    }
+
     let start = 0;
     let end = chars.length - 1;
     const prefix = [];
@@ -49,13 +60,16 @@ function parse(input) {
 
     suffix.reverse();
 
-    const clean = chars.slice(start, end + 1).join('');
+    // With @: operators stay in clean text (full string without @)
+    // Without @: operators are removed from clean text
+    const clean = include ? chars.join('') : chars.slice(start, end + 1).join('');
 
     return {
         prefix,
         suffix,
         operators: [...prefix, ...suffix],
-        clean
+        clean,
+        include
     };
 }
 

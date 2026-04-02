@@ -71,6 +71,47 @@ test('all 10 operators recognized', function () {
     }
 });
 
+test('@ at end — include operators in clean', function () {
+    $r = Tuxor::parse('+miusuario@');
+    assert_eq(['+'], $r['prefix']);
+    assert_eq('+miusuario', $r['clean']);
+    assert_eq(true, $r['include']);
+});
+
+test('@ at start — include operators in clean', function () {
+    $r = Tuxor::parse('@+miusuario');
+    assert_eq(['+'], $r['prefix']);
+    assert_eq('+miusuario', $r['clean']);
+    assert_eq(true, $r['include']);
+});
+
+test('@ with prefix and suffix operators', function () {
+    $r = Tuxor::parse('+-clave*>@');
+    assert_eq(['+', '-'], $r['prefix']);
+    assert_eq(['*', '>'], $r['suffix']);
+    assert_eq('+-clave*>', $r['clean']);
+    assert_eq(true, $r['include']);
+});
+
+test('without @ — operators excluded from clean', function () {
+    $r = Tuxor::parse('+miusuario');
+    assert_eq(['+'], $r['prefix']);
+    assert_eq('miusuario', $r['clean']);
+    assert_eq(false, $r['include']);
+});
+
+test('@ changes tuxor — different hash', function () {
+    $t1 = Tuxor::compute('+user', '+pass');
+    $t2 = Tuxor::compute('+user@', '+pass');
+    if ($t1 === $t2) throw new Exception('@ should produce different tuxor');
+});
+
+test('@ at start same as @ at end', function () {
+    $t1 = Tuxor::compute('+user@', '+pass');
+    $t2 = Tuxor::compute('@+user', '+pass');
+    assert_eq($t1, $t2);
+});
+
 test('no operators', function () {
     $r = Tuxor::parse('juan');
     assert_eq([], $r['prefix']);

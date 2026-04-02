@@ -67,6 +67,45 @@ function assertEq(expected, actual, msg = '') {
         }
     });
 
+    await test('@ at end — include ops in clean', async () => {
+        const r = parse('+miusuario@');
+        assertEq('+', r.prefix[0]);
+        assertEq('+miusuario', r.clean);
+        assertEq(true, r.include);
+    });
+
+    await test('@ at start — include ops in clean', async () => {
+        const r = parse('@+miusuario');
+        assertEq('+', r.prefix[0]);
+        assertEq('+miusuario', r.clean);
+        assertEq(true, r.include);
+    });
+
+    await test('@ with prefix+suffix ops', async () => {
+        const r = parse('+-clave*>@');
+        assertEq(2, r.prefix.length);
+        assertEq(2, r.suffix.length);
+        assertEq('+-clave*>', r.clean);
+    });
+
+    await test('without @ — ops excluded', async () => {
+        const r = parse('+miusuario');
+        assertEq('miusuario', r.clean);
+        assertEq(false, r.include);
+    });
+
+    await test('@ changes tuxor', async () => {
+        const t1 = await compute('+user', '+pass');
+        const t2 = await compute('+user@', '+pass');
+        if (t1 === t2) throw new Error('@ should produce different tuxor');
+    });
+
+    await test('@ at start same as @ at end', async () => {
+        const t1 = await compute('+user@', '+pass');
+        const t2 = await compute('@+user', '+pass');
+        assertEq(t1, t2);
+    });
+
     await test('no operators', async () => {
         const r = parse('juan');
         assertEq(0, r.operators.length);

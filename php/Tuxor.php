@@ -85,10 +85,24 @@ class Tuxor
     public static function parse(string $input): array
     {
         $chars = str_split($input);
+        $len = count($chars);
+
+        // Detect inclusion modifier @ at start or end
+        $include = false;
+        if ($len > 0 && $chars[0] === '@') {
+            $include = true;
+            $chars = array_slice($chars, 1);
+            $len--;
+        } elseif ($len > 0 && $chars[$len - 1] === '@') {
+            $include = true;
+            $chars = array_slice($chars, 0, $len - 1);
+            $len--;
+        }
+
         $prefix = [];
         $suffix = [];
         $start = 0;
-        $end = count($chars) - 1;
+        $end = $len - 1;
 
         while ($start <= $end && in_array($chars[$start], self::VALID_OPERATORS, true)) {
             $prefix[] = $chars[$start];
@@ -101,13 +115,21 @@ class Tuxor
         }
 
         $suffix = array_reverse($suffix);
-        $clean = implode('', array_slice($chars, $start, $end - $start + 1));
+
+        // With @: operators stay in clean text (full string without @)
+        // Without @: operators are removed from clean text
+        if ($include) {
+            $clean = implode('', $chars);
+        } else {
+            $clean = implode('', array_slice($chars, $start, $end - $start + 1));
+        }
 
         return [
             'prefix'    => $prefix,
             'suffix'    => $suffix,
             'operators' => array_merge($prefix, $suffix),
             'clean'     => $clean,
+            'include'   => $include,
         ];
     }
 

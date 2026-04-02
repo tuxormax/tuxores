@@ -68,6 +68,28 @@ Invalid examples:
 
 **Minimum clean text length:** 1 character after removing operators.
 
+#### Inclusion Modifier `@`
+
+The `@` symbol is a special modifier that can be placed at the **beginning or end** of an input. When present, the operators remain part of the clean text that gets hashed, in addition to being used as operation selectors.
+
+```
+Without @:
+  +juan              → operators: [+],       clean: "juan"
+
+With @ (at end):
+  +juan@             → operators: [+],       clean: "+juan"
+
+With @ (at start):
+  @+juan             → operators: [+],       clean: "+juan"
+
+With @ and multiple operators:
+  +-juan*>@          → operators: [+,-,*,>], clean: "+-juan*>"
+```
+
+The `@` itself is consumed and does not appear in the clean text or operator list. Position (start or end) produces the same result.
+
+**Security impact:** The `@` modifier changes the SHA-256 hash completely (`SHA-256("+juan") ≠ SHA-256("juan")`), producing a different tuxor even with the same operators. An attacker cannot determine whether `@` was used by examining the stored tuxor.
+
 ---
 
 ### 4. Algorithm
@@ -363,6 +385,28 @@ Ejemplos inválidos:
 ```
 
 **Longitud mínima del texto limpio:** 1 carácter después de remover operadores.
+
+#### Modificador de Inclusión `@`
+
+El símbolo `@` es un modificador especial que puede colocarse al **inicio o final** de una entrada. Cuando está presente, los operadores permanecen como parte del texto limpio que se hashea, además de usarse como selectores de operación.
+
+```
+Sin @:
+  +juan              → operadores: [+],       limpio: "juan"
+
+Con @ (al final):
+  +juan@             → operadores: [+],       limpio: "+juan"
+
+Con @ (al inicio):
+  @+juan             → operadores: [+],       limpio: "+juan"
+
+Con @ y múltiples operadores:
+  +-juan*>@          → operadores: [+,-,*,>], limpio: "+-juan*>"
+```
+
+El `@` se consume y no aparece en el texto limpio ni en la lista de operadores. La posición (inicio o final) produce el mismo resultado.
+
+**Impacto en seguridad:** El modificador `@` cambia el hash SHA-256 completamente (`SHA-256("+juan") ≠ SHA-256("juan")`), produciendo un tuxor diferente aun con los mismos operadores. Un atacante no puede determinar si se usó `@` examinando el tuxor almacenado.
 
 ---
 

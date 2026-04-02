@@ -59,6 +59,18 @@ alice*        ← suffix only
 
 **Both** the identity and the secret must contain at least one operator.
 
+### Inclusion Modifier `@`
+
+Adding `@` at the beginning or end of an input makes the operators **part of the hashed text**, not just operation selectors:
+
+```
+Without @:  +alice       → operators: [+],  hashed: "alice"
+With @:     +alice@      → operators: [+],  hashed: "+alice"      (different hash!)
+With @:     @+alice      → operators: [+],  hashed: "+alice"      (same as above)
+```
+
+The `@` is consumed — it doesn't appear in the hash or operator list. An attacker can't tell if `@` was used.
+
 ### Input Requirements
 
 - **Identity:** At least 1 operator symbol + at least 1 character of clean text
@@ -220,6 +232,18 @@ alice*        ← solo sufijo
 ```
 
 **Tanto** la identidad como el secreto deben contener al menos un operador.
+
+### Modificador de Inclusión `@`
+
+Agregar `@` al inicio o final de una entrada hace que los operadores **formen parte del texto hasheado**, no solo de los selectores de operación:
+
+```
+Sin @:   +alice       → operadores: [+],  hasheado: "alice"
+Con @:   +alice@      → operadores: [+],  hasheado: "+alice"      (hash diferente!)
+Con @:   @+alice      → operadores: [+],  hasheado: "+alice"      (igual que arriba)
+```
+
+El `@` se consume — no aparece en el hash ni en la lista de operadores. Un atacante no puede saber si se usó `@`.
 
 ### Requisitos de Entrada
 

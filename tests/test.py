@@ -55,6 +55,36 @@ test("all 10 operators recognized", lambda: [
     assert_eq([op], parse(op + 'test')['prefix'], f"Op {op}")
     for op in ['+', '-', '*', '%', '^', '&', '|', '<', '>', '#']
 ])
+test("@ at end — include ops in clean", lambda: (
+    assert_eq(['+'], parse('+miusuario@')['prefix']),
+    assert_eq('+miusuario', parse('+miusuario@')['clean']),
+    assert_eq(True, parse('+miusuario@')['include'])
+))
+test("@ at start — include ops in clean", lambda: (
+    assert_eq(['+'], parse('@+miusuario')['prefix']),
+    assert_eq('+miusuario', parse('@+miusuario')['clean']),
+    assert_eq(True, parse('@+miusuario')['include'])
+))
+test("@ with prefix+suffix ops", lambda: (
+    assert_eq(['+', '-'], parse('+-clave*>@')['prefix']),
+    assert_eq(['*', '>'], parse('+-clave*>@')['suffix']),
+    assert_eq('+-clave*>', parse('+-clave*>@')['clean'])
+))
+test("without @ — ops excluded", lambda: (
+    assert_eq('miusuario', parse('+miusuario')['clean']),
+    assert_eq(False, parse('+miusuario')['include'])
+))
+
+
+def test_at_changes_tuxor():
+    if compute('+user', '+pass') == compute('+user@', '+pass'):
+        raise Exception("@ should produce different tuxor")
+
+test("@ changes tuxor", test_at_changes_tuxor)
+test("@ at start same as @ at end", lambda: assert_eq(
+    compute('+user@', '+pass'),
+    compute('@+user', '+pass')
+))
 test("no operators", lambda: assert_eq([], parse('juan')['operators']))
 test("operator in middle stays", lambda: assert_eq('ju+an', parse('ju+an')['clean']))
 
