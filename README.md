@@ -156,6 +156,19 @@ node tests/test.js
 3. Always use **TLS/HTTPS** for credential transmission
 4. Require at least **2 operators** total across both inputs
 
+### Related Work
+
+Several existing schemes share partial similarities with TUXOR:
+
+| Scheme | Similarity | Key Difference |
+|--------|-----------|----------------|
+| **SXR** (Polpong, 2021) | Splits hash into blocks, combines with input-derived parameters | Single hash, XOR only |
+| **LG** (Anbari, 2024) | Multiple logical gates (AND, OR, XOR, NAND) on credentials | Gates are fixed system parameters, not user-chosen |
+| **HMAC** (RFC 2104) | Combines key + message with two hash passes | Fixed operation (XOR), single input |
+| **Pepper** (OWASP) | Server-side secret combined with password | Secret is a value, not an operation |
+
+**What makes TUXOR novel:** No published algorithm treats the combining operation itself as a user secret. In all existing schemes, the combining function is public and fixed. TUXOR's approach of embedding operator symbols within credentials as both input tokens and function selectors has no precedent in published cryptographic literature. See [SPEC.md](SPEC.md) Section 11 for full analysis.
+
 ---
 
 ## Español
@@ -304,6 +317,19 @@ node tests/test.js
 2. Implementar **límite de intentos** (rate limiting) a nivel de aplicación
 3. Siempre usar **TLS/HTTPS** para la transmisión de credenciales
 4. Requerir al menos **2 operadores** en total entre ambas entradas
+
+### Trabajo Relacionado
+
+Varios esquemas existentes comparten similitudes parciales con TUXOR:
+
+| Esquema | Similitud | Diferencia clave |
+|---------|-----------|------------------|
+| **SXR** (Polpong, 2021) | Divide hash en bloques, combina con parámetros del input | Un solo hash, solo XOR |
+| **LG** (Anbari, 2024) | Múltiples compuertas lógicas (AND, OR, XOR, NAND) sobre credenciales | Compuertas son parámetros fijos del sistema, no elegidos por el usuario |
+| **HMAC** (RFC 2104) | Combina clave + mensaje con dos pases de hash | Operación fija (XOR), entrada única |
+| **Pepper** (OWASP) | Secreto del servidor combinado con contraseña | El secreto es un valor, no una operación |
+
+**Qué hace novel a TUXOR:** Ningún algoritmo publicado trata la operación de combinación como un secreto del usuario. En todos los esquemas existentes, la función combinadora es pública y fija. El enfoque de TUXOR de incrustar símbolos operadores dentro de las credenciales como tokens de entrada y selectores de función no tiene precedente en la literatura criptográfica publicada. Ver [SPEC.md](SPEC.md) Sección 11 para el análisis completo.
 
 ---
 

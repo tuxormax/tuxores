@@ -272,7 +272,29 @@ Expected output:
 
 ---
 
-### 11. Version History
+### 11. Related Work
+
+Several existing cryptographic schemes share partial similarities with TUXOR, but none combine all of its properties:
+
+| Scheme | Similarity | Key Difference |
+|--------|-----------|----------------|
+| **SXR Algorithm** (Polpong, IJECE 2021) | Splits a hash into blocks and combines them using parameters derived from the input | Operates on a single hash (not two independent ones), uses only XOR as the combining operation |
+| **LG Algorithm** (Anbari et al., IJECE 2024) | Uses multiple logical gates (AND, OR, XOR, NAND, NOR) to randomize the binary representation of username + password | Gate sequence is a fixed system parameter, not chosen by the user |
+| **HMAC** (Bellare/Canetti/Krawczyk, RFC 2104) | Combines a secret key with a message using two hash passes and XOR operations | Fixed operation (XOR with ipad/opad), single input model |
+| **Robust Hash Combiners** (Fischlin et al., Journal of Cryptology 2013) | Combines two hash functions into one secure construction | Combining function is fixed and public, not user-selected |
+| **Pepper** (OWASP) | Adds a server-side secret combined with the password before hashing | The secret is a value, not an operation |
+| **Homomorphic Hashing** (Bellare/Goldreich/Goldwasser) | Performs arithmetic operations on hash segments | Designed for incremental updates, not authentication |
+
+#### What makes TUXOR novel
+
+1. **Two independent hashes** — Most schemes hash a single concatenated input or use one value as a key for the other. TUXOR hashes identity and secret independently.
+2. **Block-level pairwise combination** — Splitting two hashes into blocks and combining them pairwise is uncommon. SXR is the closest, but operates on a single hash.
+3. **User-embedded operator selection** — In all existing schemes, the combining operation is public and fixed (typically XOR). TUXOR makes the operation choice part of the user's secret credential. **No published algorithm was found that treats the combining function itself as a user secret.**
+4. **Operator symbols as input tokens** — Embedding operator symbols directly within the credential string (prefix/suffix) as both input delimiters and function selectors has no precedent in published cryptographic literature.
+
+---
+
+### 12. Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
@@ -546,7 +568,29 @@ Salida esperada:
 
 ---
 
-### 11. Historial de Versiones
+### 11. Trabajo Relacionado
+
+Varios esquemas criptográficos existentes comparten similitudes parciales con TUXOR, pero ninguno combina todas sus propiedades:
+
+| Esquema | Similitud | Diferencia clave |
+|---------|-----------|------------------|
+| **Algoritmo SXR** (Polpong, IJECE 2021) | Divide un hash en bloques y los combina usando parámetros derivados de la entrada | Opera sobre un solo hash (no dos independientes), usa únicamente XOR como operación de combinación |
+| **Algoritmo LG** (Anbari et al., IJECE 2024) | Usa múltiples compuertas lógicas (AND, OR, XOR, NAND, NOR) para aleatorizar la representación binaria de usuario + contraseña | La secuencia de compuertas es un parámetro fijo del sistema, no elegido por el usuario |
+| **HMAC** (Bellare/Canetti/Krawczyk, RFC 2104) | Combina una clave secreta con un mensaje usando dos pases de hash y operaciones XOR | Operación fija (XOR con ipad/opad), modelo de entrada única |
+| **Combinadores de Hash Robustos** (Fischlin et al., Journal of Cryptology 2013) | Combina dos funciones hash en una construcción segura | La función combinadora es fija y pública, no seleccionada por el usuario |
+| **Pepper** (OWASP) | Agrega un secreto del servidor combinado con la contraseña antes de hashear | El secreto es un valor, no una operación |
+| **Hashing Homomórfico** (Bellare/Goldreich/Goldwasser) | Realiza operaciones aritméticas sobre segmentos de hash | Diseñado para actualizaciones incrementales, no para autenticación |
+
+#### Qué hace novel a TUXOR
+
+1. **Dos hashes independientes** — La mayoría de los esquemas hashean una sola entrada concatenada o usan un valor como clave del otro. TUXOR hashea identidad y secreto de forma independiente.
+2. **Combinación por pares a nivel de bloques** — Dividir dos hashes en bloques y combinarlos por pares es inusual. SXR es el más cercano, pero opera sobre un solo hash.
+3. **Selección de operador incrustada por el usuario** — En todos los esquemas existentes, la operación de combinación es pública y fija (típicamente XOR). TUXOR hace que la elección de operación sea parte del secreto del usuario. **No se encontró ningún algoritmo publicado que trate la función combinadora como un secreto del usuario.**
+4. **Símbolos operadores como tokens de entrada** — Incrustar símbolos operadores directamente dentro de la cadena de credenciales (prefijo/sufijo) como delimitadores de entrada y selectores de función no tiene precedente en la literatura criptográfica publicada.
+
+---
+
+### 12. Historial de Versiones
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
