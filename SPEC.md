@@ -1,6 +1,6 @@
-# TUXOR v1.0 — Operator-Based Dual-Hash Authentication Algorithm
+# TUXOR v1.1 — Operator-Based Dual-Hash Authentication Algorithm
 
-# TUXOR v1.0 — Algoritmo de Autenticación Dual-Hash Basado en Operadores
+# TUXOR v1.1 — Algoritmo de Autenticación Dual-Hash Basado en Operadores
 
 ---
 
@@ -70,25 +70,33 @@ Invalid examples:
 
 #### Inclusion Modifier `@`
 
-The `@` symbol is a special modifier that can be placed at the **beginning or end** of an input. When present, the operators remain part of the clean text that gets hashed, in addition to being used as operation selectors.
+The `@` symbol is a special modifier that controls whether operators are included in the clean text that gets hashed. It supports 4 modes:
+
+| Modifier | Position | Mode | Effect |
+|----------|----------|------|--------|
+| _(none)_ | — | `none` | Operators excluded from clean text (default) |
+| `@` | Start | `prefix` | Prefix operators included in clean text |
+| `@` | End | `suffix` | Suffix operators included in clean text |
+| `@@` | Start or End | `all` | All operators included in clean text |
 
 ```
-Without @:
-  +juan              → operators: [+],       clean: "juan"
+No modifier:
+  +juan*             → operators: [+,*],     clean: "juan"
 
-With @ (at end):
-  +juan@             → operators: [+],       clean: "+juan"
+@ at start (prefix mode):
+  @+juan*            → operators: [+,*],     clean: "+juan"
 
-With @ (at start):
-  @+juan             → operators: [+],       clean: "+juan"
+@ at end (suffix mode):
+  +juan*@            → operators: [+,*],     clean: "juan*"
 
-With @ and multiple operators:
-  +-juan*>@          → operators: [+,-,*,>], clean: "+-juan*>"
+@@ at start or end (all mode):
+  @@+juan*           → operators: [+,*],     clean: "+juan*"
+  +juan*@@           → operators: [+,*],     clean: "+juan*"
 ```
 
-The `@` itself is consumed and does not appear in the clean text or operator list. Position (start or end) produces the same result.
+The `@` / `@@` is consumed and does not appear in the clean text or operator list.
 
-**Security impact:** The `@` modifier changes the SHA-256 hash completely (`SHA-256("+juan") ≠ SHA-256("juan")`), producing a different tuxor even with the same operators. An attacker cannot determine whether `@` was used by examining the stored tuxor.
+**Security impact:** Each mode produces a completely different SHA-256 hash, resulting in 4 distinct tuxors from the same base credentials. This adds **2 bits of entropy** (~4× the brute-force effort). An attacker cannot determine which mode was used by examining the stored tuxor.
 
 ---
 
@@ -320,6 +328,7 @@ Several existing cryptographic schemes share partial similarities with TUXOR, bu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-04-02 | Inclusion modifier `@` expanded to 4 modes (none, prefix, suffix, all) |
 | 1.0 | 2026-04-02 | Initial specification |
 
 ---
@@ -388,25 +397,33 @@ Ejemplos inválidos:
 
 #### Modificador de Inclusión `@`
 
-El símbolo `@` es un modificador especial que puede colocarse al **inicio o final** de una entrada. Cuando está presente, los operadores permanecen como parte del texto limpio que se hashea, además de usarse como selectores de operación.
+El símbolo `@` es un modificador especial que controla si los operadores se incluyen en el texto limpio que se hashea. Soporta 4 modos:
+
+| Modificador | Posición | Modo | Efecto |
+|-------------|----------|------|--------|
+| _(ninguno)_ | — | `none` | Operadores excluidos del texto limpio (por defecto) |
+| `@` | Inicio | `prefix` | Operadores prefijo incluidos en texto limpio |
+| `@` | Final | `suffix` | Operadores sufijo incluidos en texto limpio |
+| `@@` | Inicio o Final | `all` | Todos los operadores incluidos en texto limpio |
 
 ```
-Sin @:
-  +juan              → operadores: [+],       limpio: "juan"
+Sin modificador:
+  +juan*             → operadores: [+,*],     limpio: "juan"
 
-Con @ (al final):
-  +juan@             → operadores: [+],       limpio: "+juan"
+@ al inicio (modo prefijo):
+  @+juan*            → operadores: [+,*],     limpio: "+juan"
 
-Con @ (al inicio):
-  @+juan             → operadores: [+],       limpio: "+juan"
+@ al final (modo sufijo):
+  +juan*@            → operadores: [+,*],     limpio: "juan*"
 
-Con @ y múltiples operadores:
-  +-juan*>@          → operadores: [+,-,*,>], limpio: "+-juan*>"
+@@ al inicio o final (modo todos):
+  @@+juan*           → operadores: [+,*],     limpio: "+juan*"
+  +juan*@@           → operadores: [+,*],     limpio: "+juan*"
 ```
 
-El `@` se consume y no aparece en el texto limpio ni en la lista de operadores. La posición (inicio o final) produce el mismo resultado.
+El `@` / `@@` se consume y no aparece en el texto limpio ni en la lista de operadores.
 
-**Impacto en seguridad:** El modificador `@` cambia el hash SHA-256 completamente (`SHA-256("+juan") ≠ SHA-256("juan")`), produciendo un tuxor diferente aun con los mismos operadores. Un atacante no puede determinar si se usó `@` examinando el tuxor almacenado.
+**Impacto en seguridad:** Cada modo produce un hash SHA-256 completamente diferente, resultando en 4 tuxors distintos a partir de las mismas credenciales base. Esto agrega **2 bits de entropía** (~4× el esfuerzo de fuerza bruta). Un atacante no puede determinar qué modo se usó examinando el tuxor almacenado.
 
 ---
 
@@ -638,6 +655,7 @@ Varios esquemas criptográficos existentes comparten similitudes parciales con T
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 1.1 | 02-04-2026 | Modificador de inclusión `@` expandido a 4 modos (none, prefix, suffix, all) |
 | 1.0 | 02-04-2026 | Especificación inicial |
 
 ---

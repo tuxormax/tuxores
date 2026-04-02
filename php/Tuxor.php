@@ -87,14 +87,26 @@ class Tuxor
         $chars = str_split($input);
         $len = count($chars);
 
-        // Detect inclusion modifier @ at start or end
-        $include = false;
-        if ($len > 0 && $chars[0] === '@') {
-            $include = true;
+        // Detect inclusion modifier:
+        //   @@  (start or end) → include all operators in clean text
+        //   @   at start       → include only prefix operators
+        //   @   at end         → include only suffix operators
+        //   (none)             → exclude all operators
+        $include = 'none';
+        if ($len >= 2 && $chars[0] === '@' && $chars[1] === '@') {
+            $include = 'all';
+            $chars = array_slice($chars, 2);
+            $len -= 2;
+        } elseif ($len >= 2 && $chars[$len - 1] === '@' && $chars[$len - 2] === '@') {
+            $include = 'all';
+            $chars = array_slice($chars, 0, $len - 2);
+            $len -= 2;
+        } elseif ($len > 0 && $chars[0] === '@') {
+            $include = 'prefix';
             $chars = array_slice($chars, 1);
             $len--;
         } elseif ($len > 0 && $chars[$len - 1] === '@') {
-            $include = true;
+            $include = 'suffix';
             $chars = array_slice($chars, 0, $len - 1);
             $len--;
         }
@@ -116,13 +128,14 @@ class Tuxor
 
         $suffix = array_reverse($suffix);
 
-        // With @: operators stay in clean text (full string without @)
-        // Without @: operators are removed from clean text
-        if ($include) {
-            $clean = implode('', $chars);
-        } else {
-            $clean = implode('', array_slice($chars, $start, $end - $start + 1));
-        }
+        $middle = implode('', array_slice($chars, $start, $end - $start + 1));
+
+        $clean = match ($include) {
+            'all'    => implode('', $chars),
+            'prefix' => implode('', $prefix) . $middle,
+            'suffix' => $middle . implode('', $suffix),
+            default  => $middle,
+        };
 
         return [
             'prefix'    => $prefix,

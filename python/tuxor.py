@@ -22,14 +22,24 @@ def sha256(message: str) -> str:
 def parse(input_str: str) -> dict:
     """Parse an input string: extract prefix/suffix operators and clean text."""
     chars = list(input_str)
-    include = False
+    include = 'none'
 
-    # Detect inclusion modifier @ at start or end
-    if chars and chars[0] == '@':
-        include = True
+    # Detect inclusion modifier:
+    #   @@  (start or end) → include all operators in clean text
+    #   @   at start       → include only prefix operators
+    #   @   at end         → include only suffix operators
+    #   (none)             → exclude all operators
+    if len(chars) >= 2 and chars[0] == '@' and chars[1] == '@':
+        include = 'all'
+        chars = chars[2:]
+    elif len(chars) >= 2 and chars[-1] == '@' and chars[-2] == '@':
+        include = 'all'
+        chars = chars[:-2]
+    elif chars and chars[0] == '@':
+        include = 'prefix'
         chars = chars[1:]
     elif chars and chars[-1] == '@':
-        include = True
+        include = 'suffix'
         chars = chars[:-1]
 
     start = 0
@@ -47,12 +57,16 @@ def parse(input_str: str) -> dict:
 
     suffix.reverse()
 
-    # With @: operators stay in clean text (full string without @)
-    # Without @: operators are removed from clean text
-    if include:
+    middle = ''.join(chars[start:end + 1])
+
+    if include == 'all':
         clean = ''.join(chars)
+    elif include == 'prefix':
+        clean = ''.join(prefix) + middle
+    elif include == 'suffix':
+        clean = middle + ''.join(suffix)
     else:
-        clean = ''.join(chars[start:end + 1])
+        clean = middle
 
     return {
         'prefix': prefix,

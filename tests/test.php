@@ -71,44 +71,56 @@ test('all 10 operators recognized', function () {
     }
 });
 
-test('@ at end — include operators in clean', function () {
-    $r = Tuxor::parse('+miusuario@');
+test('@ at start — include prefix only', function () {
+    $r = Tuxor::parse('@+miusuario*');
     assert_eq(['+'], $r['prefix']);
+    assert_eq(['*'], $r['suffix']);
     assert_eq('+miusuario', $r['clean']);
-    assert_eq(true, $r['include']);
+    assert_eq('prefix', $r['include']);
 });
 
-test('@ at start — include operators in clean', function () {
-    $r = Tuxor::parse('@+miusuario');
+test('@ at end — include suffix only', function () {
+    $r = Tuxor::parse('+miusuario*@');
     assert_eq(['+'], $r['prefix']);
-    assert_eq('+miusuario', $r['clean']);
-    assert_eq(true, $r['include']);
+    assert_eq(['*'], $r['suffix']);
+    assert_eq('miusuario*', $r['clean']);
+    assert_eq('suffix', $r['include']);
 });
 
-test('@ with prefix and suffix operators', function () {
-    $r = Tuxor::parse('+-clave*>@');
-    assert_eq(['+', '-'], $r['prefix']);
-    assert_eq(['*', '>'], $r['suffix']);
-    assert_eq('+-clave*>', $r['clean']);
-    assert_eq(true, $r['include']);
+test('@@ at start — include all operators', function () {
+    $r = Tuxor::parse('@@+miusuario*');
+    assert_eq(['+'], $r['prefix']);
+    assert_eq(['*'], $r['suffix']);
+    assert_eq('+miusuario*', $r['clean']);
+    assert_eq('all', $r['include']);
+});
+
+test('@@ at end — include all operators', function () {
+    $r = Tuxor::parse('+miusuario*@@');
+    assert_eq(['+'], $r['prefix']);
+    assert_eq(['*'], $r['suffix']);
+    assert_eq('+miusuario*', $r['clean']);
+    assert_eq('all', $r['include']);
 });
 
 test('without @ — operators excluded from clean', function () {
-    $r = Tuxor::parse('+miusuario');
-    assert_eq(['+'], $r['prefix']);
+    $r = Tuxor::parse('+miusuario*');
     assert_eq('miusuario', $r['clean']);
-    assert_eq(false, $r['include']);
+    assert_eq('none', $r['include']);
 });
 
-test('@ changes tuxor — different hash', function () {
-    $t1 = Tuxor::compute('+user', '+pass');
-    $t2 = Tuxor::compute('+user@', '+pass');
-    if ($t1 === $t2) throw new Exception('@ should produce different tuxor');
+test('4 variants produce 4 different tuxors', function () {
+    $t_none   = Tuxor::compute('+user*', '+pass');
+    $t_prefix = Tuxor::compute('@+user*', '+pass');
+    $t_suffix = Tuxor::compute('+user*@', '+pass');
+    $t_all    = Tuxor::compute('@@+user*', '+pass');
+    $all = [$t_none, $t_prefix, $t_suffix, $t_all];
+    if (count(array_unique($all)) !== 4) throw new Exception('4 variants must produce 4 different tuxors');
 });
 
-test('@ at start same as @ at end', function () {
-    $t1 = Tuxor::compute('+user@', '+pass');
-    $t2 = Tuxor::compute('@+user', '+pass');
+test('@@ at start same as @@ at end', function () {
+    $t1 = Tuxor::compute('@@+user*', '+pass');
+    $t2 = Tuxor::compute('+user*@@', '+pass');
     assert_eq($t1, $t2);
 });
 

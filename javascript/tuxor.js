@@ -32,14 +32,24 @@ async function sha256(message) {
  */
 function parse(input) {
     let chars = [...input];
-    let include = false;
+    let include = 'none';
 
-    // Detect inclusion modifier @ at start or end
-    if (chars.length > 0 && chars[0] === '@') {
-        include = true;
+    // Detect inclusion modifier:
+    //   @@  (start or end) → include all operators in clean text
+    //   @   at start       → include only prefix operators
+    //   @   at end         → include only suffix operators
+    //   (none)             → exclude all operators
+    if (chars.length >= 2 && chars[0] === '@' && chars[1] === '@') {
+        include = 'all';
+        chars = chars.slice(2);
+    } else if (chars.length >= 2 && chars[chars.length - 1] === '@' && chars[chars.length - 2] === '@') {
+        include = 'all';
+        chars = chars.slice(0, -2);
+    } else if (chars.length > 0 && chars[0] === '@') {
+        include = 'prefix';
         chars = chars.slice(1);
     } else if (chars.length > 0 && chars[chars.length - 1] === '@') {
-        include = true;
+        include = 'suffix';
         chars = chars.slice(0, -1);
     }
 
@@ -60,9 +70,12 @@ function parse(input) {
 
     suffix.reverse();
 
-    // With @: operators stay in clean text (full string without @)
-    // Without @: operators are removed from clean text
-    const clean = include ? chars.join('') : chars.slice(start, end + 1).join('');
+    const middle = chars.slice(start, end + 1).join('');
+    let clean;
+    if (include === 'all') clean = chars.join('');
+    else if (include === 'prefix') clean = prefix.join('') + middle;
+    else if (include === 'suffix') clean = middle + suffix.join('');
+    else clean = middle;
 
     return {
         prefix,

@@ -61,15 +61,16 @@ alice*        ← suffix only
 
 ### Inclusion Modifier `@`
 
-Adding `@` at the beginning or end of an input makes the operators **part of the hashed text**, not just operation selectors:
+The `@` symbol controls whether operators are included in the hashed text. 4 modes:
 
 ```
-Without @:  +alice       → operators: [+],  hashed: "alice"
-With @:     +alice@      → operators: [+],  hashed: "+alice"      (different hash!)
-With @:     @+alice      → operators: [+],  hashed: "+alice"      (same as above)
+No @:       +alice*      → hashed: "alice"        (operators excluded)
+@ start:    @+alice*     → hashed: "+alice"        (prefix included)
+@ end:      +alice*@     → hashed: "alice*"        (suffix included)
+@@ :        @@+alice*    → hashed: "+alice*"       (all included)
 ```
 
-The `@` is consumed — it doesn't appear in the hash or operator list. An attacker can't tell if `@` was used.
+Each mode produces a completely different tuxor. The `@`/`@@` is consumed — an attacker can't tell which mode was used. Adds **2 bits of entropy** (4× brute-force effort).
 
 ### Input Requirements
 
@@ -235,15 +236,16 @@ alice*        ← solo sufijo
 
 ### Modificador de Inclusión `@`
 
-Agregar `@` al inicio o final de una entrada hace que los operadores **formen parte del texto hasheado**, no solo de los selectores de operación:
+El símbolo `@` controla si los operadores se incluyen en el texto hasheado. 4 modos:
 
 ```
-Sin @:   +alice       → operadores: [+],  hasheado: "alice"
-Con @:   +alice@      → operadores: [+],  hasheado: "+alice"      (hash diferente!)
-Con @:   @+alice      → operadores: [+],  hasheado: "+alice"      (igual que arriba)
+Sin @:      +alice*      → hasheado: "alice"        (operadores excluidos)
+@ inicio:   @+alice*     → hasheado: "+alice"        (prefijo incluido)
+@ final:    +alice*@     → hasheado: "alice*"        (sufijo incluido)
+@@ :        @@+alice*    → hasheado: "+alice*"       (todos incluidos)
 ```
 
-El `@` se consume — no aparece en el hash ni en la lista de operadores. Un atacante no puede saber si se usó `@`.
+Cada modo produce un tuxor completamente diferente. El `@`/`@@` se consume — un atacante no puede saber qué modo se usó. Agrega **2 bits de entropía** (4× esfuerzo de fuerza bruta).
 
 ### Requisitos de Entrada
 

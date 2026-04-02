@@ -67,42 +67,49 @@ function assertEq(expected, actual, msg = '') {
         }
     });
 
-    await test('@ at end — include ops in clean', async () => {
-        const r = parse('+miusuario@');
+    await test('@ at start — include prefix only', async () => {
+        const r = parse('@+miusuario*');
         assertEq('+', r.prefix[0]);
+        assertEq('*', r.suffix[0]);
         assertEq('+miusuario', r.clean);
-        assertEq(true, r.include);
+        assertEq('prefix', r.include);
     });
 
-    await test('@ at start — include ops in clean', async () => {
-        const r = parse('@+miusuario');
+    await test('@ at end — include suffix only', async () => {
+        const r = parse('+miusuario*@');
         assertEq('+', r.prefix[0]);
-        assertEq('+miusuario', r.clean);
-        assertEq(true, r.include);
+        assertEq('*', r.suffix[0]);
+        assertEq('miusuario*', r.clean);
+        assertEq('suffix', r.include);
     });
 
-    await test('@ with prefix+suffix ops', async () => {
-        const r = parse('+-clave*>@');
-        assertEq(2, r.prefix.length);
-        assertEq(2, r.suffix.length);
-        assertEq('+-clave*>', r.clean);
+    await test('@@ at start — include all', async () => {
+        assertEq('+miusuario*', parse('@@+miusuario*').clean);
+        assertEq('all', parse('@@+miusuario*').include);
+    });
+
+    await test('@@ at end — include all', async () => {
+        assertEq('+miusuario*', parse('+miusuario*@@').clean);
+        assertEq('all', parse('+miusuario*@@').include);
     });
 
     await test('without @ — ops excluded', async () => {
-        const r = parse('+miusuario');
-        assertEq('miusuario', r.clean);
-        assertEq(false, r.include);
+        assertEq('miusuario', parse('+miusuario*').clean);
+        assertEq('none', parse('+miusuario*').include);
     });
 
-    await test('@ changes tuxor', async () => {
-        const t1 = await compute('+user', '+pass');
-        const t2 = await compute('+user@', '+pass');
-        if (t1 === t2) throw new Error('@ should produce different tuxor');
+    await test('4 variants produce 4 different tuxors', async () => {
+        const tNone   = await compute('+user*', '+pass');
+        const tPrefix = await compute('@+user*', '+pass');
+        const tSuffix = await compute('+user*@', '+pass');
+        const tAll    = await compute('@@+user*', '+pass');
+        const unique = new Set([tNone, tPrefix, tSuffix, tAll]);
+        if (unique.size !== 4) throw new Error('4 variants must produce 4 different tuxors');
     });
 
-    await test('@ at start same as @ at end', async () => {
-        const t1 = await compute('+user@', '+pass');
-        const t2 = await compute('@+user', '+pass');
+    await test('@@ at start same as @@ at end', async () => {
+        const t1 = await compute('@@+user*', '+pass');
+        const t2 = await compute('+user*@@', '+pass');
         assertEq(t1, t2);
     });
 
