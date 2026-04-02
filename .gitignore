@@ -2,3 +2,12 @@ __pycache__/
 *.pyc
 node_modules/
 .DS_Store
+
+# LaTeX temp files
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
