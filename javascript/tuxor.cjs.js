@@ -3,7 +3,7 @@
  * Reference implementation in JavaScript (CommonJS for Node.js)
  *
  * @author Bernardo Sanchez Gutierrez
- * @license MIT
+ * @license GPL-3.0
  */
 
 const crypto = require('crypto');

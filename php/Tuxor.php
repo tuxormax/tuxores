@@ -6,7 +6,7 @@
  * Uses split 32-bit arithmetic for cross-platform consistency
  *
  * @author Bernardo Sanchez Gutierrez
- * @license MIT
+ * @license GPL-3.0
  */
 
 class Tuxor

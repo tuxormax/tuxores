@@ -3,7 +3,7 @@ TUXOR v1.0 — Operator-Based Dual-Hash Authentication Algorithm
 Reference implementation in Python
 
 Author: Bernardo Sanchez Gutierrez
-License: MIT
+License: GPL-3.0
 """
 
 import hashlib

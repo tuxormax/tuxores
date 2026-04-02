@@ -153,7 +153,7 @@ See [SPEC.md](SPEC.md) for the complete formal specification, including the algo
 
 ## License
 
-MIT
+GPL-3.0
 
 ## Author
 

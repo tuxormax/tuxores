@@ -285,4 +285,4 @@ Expected output:
 ---
 
 **Author:** Bernardo Sanchez Gutierrez
-**License:** MIT
+**License:** GPL-3.0
