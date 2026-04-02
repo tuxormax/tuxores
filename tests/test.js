@@ -2,7 +2,7 @@
  * TUXOR v1.0 — Tests (JavaScript / Node.js)
  */
 
-const { compute, verify, validate, parse } = require('../javascript/tuxor.cjs.js');
+const { compute, verify, validate, parse, computeSecure, verifySecure } = require('../javascript/tuxor.cjs.js');
 
 let passed = 0;
 let failed = 0;
@@ -218,6 +218,31 @@ function assertEq(expected, actual, msg = '') {
     console.log('\nTest Vector');
     const tv = await compute('+tuxor', '*algorithm#');
     console.log(`  Tuxor('+tuxor', '*algorithm#') = ${tv}`);
+
+    // Secure mode
+    console.log('\nSecure Mode (scrypt)');
+
+    await test('computeSecure returns tuxor, salt, cost', async () => {
+        const r = await computeSecure('+tuxor', '*algorithm#', null, 10);
+        if (!r.tuxor || !r.salt || !r.cost) throw new Error('Missing keys');
+        assertEq(32, r.salt.length);
+    });
+
+    await test('computeSecure — different salt different tuxor', async () => {
+        const r1 = await computeSecure('+user', '+pass', 'aaaa1111bbbb2222cccc3333dddd4444', 10);
+        const r2 = await computeSecure('+user', '+pass', '1111aaaa2222bbbb3333cccc4444dddd', 10);
+        if (r1.tuxor === r2.tuxor) throw new Error('Different salts produced same tuxor');
+    });
+
+    await test('verifySecure — correct credentials', async () => {
+        const r = await computeSecure('+tuxor', '*algorithm#', null, 10);
+        assertEq(true, await verifySecure('+tuxor', '*algorithm#', r.tuxor, r.salt, r.cost));
+    });
+
+    await test('verifySecure — wrong credentials', async () => {
+        const r = await computeSecure('+tuxor', '*algorithm#', null, 10);
+        assertEq(false, await verifySecure('+tuxor', '*wrong#', r.tuxor, r.salt, r.cost));
+    });
 
     console.log('\n' + '='.repeat(50));
     console.log(`Results: ${passed} passed, ${failed} failed`);

@@ -1,6 +1,6 @@
-# TUXOR v1.1 — Operator-Based Dual-Hash Authentication Algorithm
+# TUXOR v2.0 — Operator-Based Dual-Hash Authentication Algorithm
 
-# TUXOR v1.1 — Algoritmo de Autenticación Dual-Hash Basado en Operadores
+# TUXOR v2.0 — Algoritmo de Autenticación Dual-Hash Basado en Operadores
 
 ---
 
@@ -324,10 +324,41 @@ Several existing cryptographic schemes share partial similarities with TUXOR, bu
 
 ---
 
+### 11.5. Secure Mode: Salt + Key Derivation
+
+For production use, TUXOR should be combined with a standard KDF to add computational cost:
+
+```
+BASIC MODE (compute/verify):
+  tuxor = TUXOR(identity, secret)              → 64 hex chars, fast
+
+SECURE MODE (computeSecure/verifySecure):
+  tuxor_raw = TUXOR(identity, secret)          → confusion layer
+  salt = random(16 bytes)                      → unique per user
+  input = tuxor_raw + ":" + salt
+  tuxor_final = KDF(input, salt, cost)         → resistance layer
+  Store: tuxor_final, salt, cost
+```
+
+Supported KDFs by implementation:
+
+| Language | KDF | Function |
+|----------|-----|----------|
+| PHP | Argon2id | `password_hash(PASSWORD_ARGON2ID)` |
+| Python | scrypt | `hashlib.scrypt(n=2^cost, r=8, p=1)` |
+| JavaScript | scrypt | `crypto.scrypt(N=2^cost, r=8, p=1)` |
+
+This two-layer architecture separates concerns:
+- **TUXOR layer**: operator-based confusion (unknown operations)
+- **KDF layer**: computational/memory cost (brute-force resistance)
+
+---
+
 ### 12. Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.0 | 2026-04-02 | Secure mode with salt + KDF (Argon2id/scrypt), academic paper |
 | 1.1 | 2026-04-02 | Inclusion modifier `@` expanded to 4 modes (none, prefix, suffix, all) |
 | 1.0 | 2026-04-02 | Initial specification |
 
@@ -651,10 +682,41 @@ Varios esquemas criptográficos existentes comparten similitudes parciales con T
 
 ---
 
+### 11.5. Modo Seguro: Salt + Derivación de Clave
+
+Para uso en producción, TUXOR debe combinarse con un KDF estándar para agregar costo computacional:
+
+```
+MODO BÁSICO (compute/verify):
+  tuxor = TUXOR(identidad, secreto)            → 64 hex chars, rápido
+
+MODO SEGURO (computeSecure/verifySecure):
+  tuxor_raw = TUXOR(identidad, secreto)        → capa de confusión
+  salt = random(16 bytes)                      → único por usuario
+  input = tuxor_raw + ":" + salt
+  tuxor_final = KDF(input, salt, cost)         → capa de resistencia
+  Almacenar: tuxor_final, salt, cost
+```
+
+KDFs soportados por implementación:
+
+| Lenguaje | KDF | Función |
+|----------|-----|---------|
+| PHP | Argon2id | `password_hash(PASSWORD_ARGON2ID)` |
+| Python | scrypt | `hashlib.scrypt(n=2^cost, r=8, p=1)` |
+| JavaScript | scrypt | `crypto.scrypt(N=2^cost, r=8, p=1)` |
+
+Esta arquitectura de dos capas separa responsabilidades:
+- **Capa TUXOR**: confusión basada en operadores (operaciones desconocidas)
+- **Capa KDF**: costo computacional/memoria (resistencia a fuerza bruta)
+
+---
+
 ### 12. Historial de Versiones
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 2.0 | 02-04-2026 | Modo seguro con salt + KDF (Argon2id/scrypt), paper académico |
 | 1.1 | 02-04-2026 | Modificador de inclusión `@` expandido a 4 modos (none, prefix, suffix, all) |
 | 1.0 | 02-04-2026 | Especificación inicial |
 

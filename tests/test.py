@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
 
-from tuxor import compute, verify, validate, parse
+from tuxor import compute, verify, validate, parse, compute_secure, verify_secure
 
 passed = 0
 failed = 0
@@ -181,6 +181,42 @@ test("verify wrong operator", lambda: assert_eq(False, verify('-tuxor', '*algori
 print("\nTest Vector")
 tv = compute('+tuxor', '*algorithm#')
 print(f"  Tuxor('+tuxor', '*algorithm#') = {tv}")
+
+# Secure mode
+print("\nSecure Mode (scrypt)")
+
+
+def test_secure_keys():
+    r = compute_secure('+tuxor', '*algorithm#', cost=10)
+    assert r['tuxor'], "Missing tuxor"
+    assert r['salt'], "Missing salt"
+    assert r['cost'] == 10, f"Expected cost 10, got {r['cost']}"
+    assert_eq(32, len(r['salt']))  # 16 bytes hex
+
+test("computeSecure returns tuxor, salt, cost", test_secure_keys)
+
+
+def test_secure_diff_salt():
+    r1 = compute_secure('+user', '+pass', salt='aaaa1111bbbb2222cccc3333dddd4444', cost=10)
+    r2 = compute_secure('+user', '+pass', salt='1111aaaa2222bbbb3333cccc4444dddd', cost=10)
+    if r1['tuxor'] == r2['tuxor']:
+        raise Exception("Different salts produced same tuxor")
+
+test("computeSecure — different salt different tuxor", test_secure_diff_salt)
+
+
+def test_verify_secure_correct():
+    r = compute_secure('+tuxor', '*algorithm#', cost=10)
+    assert_eq(True, verify_secure('+tuxor', '*algorithm#', r['tuxor'], r['salt'], r['cost']))
+
+test("verifySecure — correct credentials", test_verify_secure_correct)
+
+
+def test_verify_secure_wrong():
+    r = compute_secure('+tuxor', '*algorithm#', cost=10)
+    assert_eq(False, verify_secure('+tuxor', '*wrong#', r['tuxor'], r['salt'], r['cost']))
+
+test("verifySecure — wrong credentials", test_verify_secure_wrong)
 
 print(f"\n{'=' * 50}")
 print(f"Results: {passed} passed, {failed} failed")

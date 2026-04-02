@@ -257,6 +257,35 @@ test('spec test vector — deterministic output', function () {
     assert_eq(64, strlen($t));
 });
 
+echo "\n";
+
+// --- Secure mode tests ---
+echo "Secure Mode (Argon2id)\n";
+
+test('computeSecure returns tuxor, salt, cost', function () {
+    $r = Tuxor::computeSecure('+tuxor', '*algorithm#');
+    if (!isset($r['tuxor']) || !isset($r['salt']) || !isset($r['cost'])) {
+        throw new Exception('Missing keys in result');
+    }
+    assert_eq(32, strlen($r['salt']));  // 16 bytes hex = 32 chars
+});
+
+test('computeSecure — different salt produces different tuxor', function () {
+    $r1 = Tuxor::computeSecure('+user', '+pass', 'aaaa1111bbbb2222cccc3333dddd4444');
+    $r2 = Tuxor::computeSecure('+user', '+pass', '1111aaaa2222bbbb3333cccc4444dddd');
+    if ($r1['tuxor'] === $r2['tuxor']) throw new Exception('Different salts produced same tuxor');
+});
+
+test('verifySecure — correct credentials', function () {
+    $r = Tuxor::computeSecure('+tuxor', '*algorithm#');
+    assert_eq(true, Tuxor::verifySecure('+tuxor', '*algorithm#', $r['tuxor'], $r['salt']));
+});
+
+test('verifySecure — wrong credentials', function () {
+    $r = Tuxor::computeSecure('+tuxor', '*algorithm#');
+    assert_eq(false, Tuxor::verifySecure('+tuxor', '*wrong#', $r['tuxor'], $r['salt']));
+});
+
 echo "\n" . str_repeat('=', 50) . "\n";
 echo "Results: {$passed} passed, {$failed} failed\n";
 

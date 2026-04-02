@@ -63,11 +63,51 @@ class Tuxor
     }
 
     /**
-     * Verify a tuxor against stored value
+     * Verify a tuxor against stored value (basic mode, no salt)
      */
     public static function verify(string $identity, string $secret, string $storedTuxor): bool
     {
         return hash_equals($storedTuxor, self::compute($identity, $secret));
+    }
+
+    /**
+     * Compute with salt + Argon2id hardening (secure mode)
+     * Returns: ['tuxor' => string, 'salt' => string, 'cost' => int]
+     */
+    public static function computeSecure(string $identity, string $secret, ?string $salt = null, int $cost = 12): array
+    {
+        $tuxorRaw = self::compute($identity, $secret);
+        $salt = $salt ?? bin2hex(random_bytes(16));
+
+        // Combine tuxor_raw + salt, then apply Argon2id
+        $input = $tuxorRaw . ':' . $salt;
+
+        if (defined('PASSWORD_ARGON2ID')) {
+            $hash = password_hash($input, PASSWORD_ARGON2ID, [
+                'memory_cost' => 1 << $cost,  // 2^cost KB
+                'time_cost'   => 4,
+                'threads'     => 2,
+            ]);
+        } else {
+            // Fallback to bcrypt
+            $hash = password_hash($input, PASSWORD_BCRYPT, ['cost' => $cost]);
+        }
+
+        return [
+            'tuxor' => $hash,
+            'salt'  => $salt,
+            'cost'  => $cost,
+        ];
+    }
+
+    /**
+     * Verify with salt + Argon2id (secure mode)
+     */
+    public static function verifySecure(string $identity, string $secret, string $storedHash, string $salt): bool
+    {
+        $tuxorRaw = self::compute($identity, $secret);
+        $input = $tuxorRaw . ':' . $salt;
+        return password_verify($input, $storedHash);
     }
 
     /**

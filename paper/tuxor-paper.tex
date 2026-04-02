@@ -1,0 +1,381 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Listings style
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red!70!black},
+}
+
+% Title
+\title{
+  \textbf{TUXOR: Operator-Based Dual-Hash Authentication Algorithm\\with User-Embedded Function Selection}
+}
+\author{
+  Bernardo Sanchez Gutierrez\\
+  \texttt{tuxor.max@gmail.com}
+}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================
+\begin{abstract}
+We present TUXOR, a novel authentication algorithm that introduces a fundamentally new concept in credential hashing: user-defined operation selection embedded within the credentials themselves. Unlike traditional schemes where the combining function is public and fixed, TUXOR allows users to embed mathematical and bitwise operator symbols within both their identity and secret inputs. These operators determine how independently hashed blocks of the two inputs are combined, making the operation selection itself part of the authentication secret. Only the final computed value---the \textit{tuxor}---is stored; neither the identity nor the secret is persisted in any form. The algorithm further introduces an inclusion modifier (\texttt{@}) that controls whether operator symbols are incorporated into the hashed text, yielding four distinct modes from identical base credentials. Combined with a standard key derivation function (Argon2id or scrypt), TUXOR provides a confusion layer that significantly increases the search space for brute-force attacks. We provide reference implementations in PHP, JavaScript, and Python, with cross-platform test vectors demonstrating identical outputs.
+\end{abstract}
+
+\textbf{Keywords:} authentication, password hashing, operator-based cryptography, dual-hash, key derivation
+
+% ============================================================
+\section{Introduction}
+
+Password authentication remains the dominant mechanism for user verification in information systems. The standard approach involves hashing the user's password with a one-way function and storing the hash for later comparison. Modern best practices employ key derivation functions (KDFs) such as bcrypt \cite{provos1999bcrypt}, scrypt \cite{percival2009scrypt}, or Argon2 \cite{biryukov2016argon2} that introduce computational cost to resist brute-force attacks.
+
+However, all existing schemes share a common architectural property: the \textit{combining function} used to process credentials is publicly known and fixed. Whether a system uses HMAC's XOR-based construction, bcrypt's Blowfish rounds, or Argon2's memory-hard passes, the algorithmic steps are deterministic given the input. An attacker who obtains a database dump knows exactly which function produced each stored hash and can focus entirely on guessing the input.
+
+TUXOR challenges this assumption by making the combining function itself part of the user's secret. Users embed mathematical operator symbols (\texttt{+}, \texttt{-}, \texttt{*}, \texttt{\%}, \texttt{\^{}}, \texttt{\&}, \texttt{|}, \texttt{<}, \texttt{>}, \texttt{\#}) within their identity and secret strings. These operators are extracted during parsing and used to determine how independently hashed blocks of the two inputs are combined. The result is that an attacker must guess not only the identity and secret, but also which operations were applied---and in what order.
+
+This paper formalizes the TUXOR algorithm, analyzes its security properties, compares it with related work, and presents reference implementations with cross-platform test vectors.
+
+% ============================================================
+\section{Related Work}
+
+\subsection{SXR Algorithm}
+Polpong \cite{polpong2021sxr} proposed SXR, which splits a single password hash into two parts based on a ratio derived from the credentials, then applies XOR iteratively between the halves. While SXR shares the concept of block-level manipulation with input-derived parameters, it operates on a \textit{single} hash using a \textit{fixed} operation (XOR).
+
+\subsection{LG Algorithm}
+Anbari et al. \cite{anbari2024lg} introduced binary randomization through logical gates (AND, OR, XOR, NAND, NOR, NOT) applied to the binary representation of username and password before hashing. However, the gate sequence is a \textit{fixed system parameter}, not selected by the user.
+
+\subsection{HMAC}
+HMAC \cite{bellare1996hmac} combines a secret key with a message using two passes of a hash function with XOR operations against fixed padding constants (ipad/opad). The combining operations are public and invariant.
+
+\subsection{Hash Combiners}
+Fischlin et al. \cite{fischlin2013combiners} studied robust multi-property hash combiners that merge two hash functions into a single secure construction. The combining function is always fixed and public.
+
+\subsection{Key Derivation Functions}
+Modern KDFs---bcrypt \cite{provos1999bcrypt}, scrypt \cite{percival2009scrypt}, and Argon2 \cite{biryukov2016argon2}---focus on computational and memory cost to resist brute-force attacks. They process a single input (password + salt) through a fixed algorithm. TUXOR is designed to complement, not replace, these functions.
+
+\subsection{Novelty of TUXOR}
+To our knowledge, no published algorithm treats the combining function itself as a user-defined secret embedded within the credential inputs. This represents TUXOR's primary contribution.
+
+% ============================================================
+\section{Algorithm Specification}
+
+\subsection{Definitions}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Identity} ($I_{in}$): First input string containing at least one operator symbol.
+  \item \textbf{Secret} ($S_{in}$): Second input string containing at least one operator symbol.
+  \item \textbf{Operator}: A symbol from the set $\Omega = \{+, -, *, \%, \wedge, \&, |, <, >, \#\}$.
+  \item \textbf{Tuxor}: The final 256-bit hash---the only value stored.
+  \item \textbf{Block}: A 64-bit unsigned integer derived from 16 hexadecimal characters.
+\end{itemize}
+
+\subsection{Valid Operators}
+
+Table \ref{tab:operators} defines the ten supported operators.
+
+\begin{table}[h]
+\centering
+\caption{TUXOR Operators}
+\label{tab:operators}
+\begin{tabular}{@{}clll@{}}
+\toprule
+Symbol & Operation & Type & Definition \\
+\midrule
+\texttt{+} & Addition & Arithmetic & $(I + S) \bmod 2^{64}$ \\
+\texttt{-} & Subtraction & Arithmetic & $(I - S + 2^{64}) \bmod 2^{64}$ \\
+\texttt{*} & Multiplication & Arithmetic & $(I \times S) \bmod 2^{64}$ \\
+\texttt{\%} & Modulo & Arithmetic & $I \bmod S$ (if $S=0$, use $S=1$) \\
+\texttt{\^{}} & XOR & Bitwise & $I \oplus S$ \\
+\texttt{\&} & AND & Bitwise & $I \wedge S$ \\
+\texttt{|} & OR & Bitwise & $I \vee S$ \\
+\texttt{<} & Left Rotate & Shift & Rotate $I$ left by $(S \bmod 64)$ bits \\
+\texttt{>} & Right Rotate & Shift & Rotate $I$ right by $(S \bmod 64)$ bits \\
+\texttt{\#} & Re-Hash & Special & $\text{hex\_to\_int}(\text{SHA-256}(I \| S)[0..15])$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Input Parsing}
+
+Both inputs follow the format: $[\text{operators\_prefix}]\ \text{clean\_text}\ [\text{operators\_suffix}]$
+
+Operators are extracted from the beginning and end of each string. The remaining text constitutes the ``clean text'' that will be hashed.
+
+\subsubsection{Inclusion Modifier \texttt{@}}
+
+The \texttt{@} symbol acts as a modifier controlling whether operators are included in the hashed text:
+
+\begin{table}[h]
+\centering
+\caption{Inclusion Modifier Modes}
+\label{tab:modifier}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Modifier & Position & Mode & Effect \\
+\midrule
+(none) & --- & \texttt{none} & Operators excluded from clean text \\
+\texttt{@} & Start & \texttt{prefix} & Prefix operators included in clean text \\
+\texttt{@} & End & \texttt{suffix} & Suffix operators included in clean text \\
+\texttt{@@} & Start or End & \texttt{all} & All operators included in clean text \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Algorithm Steps}
+
+\begin{algorithm}
+\caption{TUXOR Computation}
+\label{alg:tuxor}
+\begin{algorithmic}[1]
+\Require Identity $I_{in}$, Secret $S_{in}$
+\Ensure 64-character hexadecimal tuxor
+\State Parse $I_{in}$ and $S_{in}$: extract operators and clean text
+\State $\text{ops} \gets I.\text{prefix} \| I.\text{suffix} \| S.\text{prefix} \| S.\text{suffix}$
+\State $H_I \gets \text{SHA-256}(I.\text{clean})$ \Comment{64 hex characters}
+\State $H_S \gets \text{SHA-256}(S.\text{clean})$ \Comment{64 hex characters}
+\State Split $H_I$ into blocks $[I_0, I_1, I_2, I_3]$ \Comment{16 hex chars each}
+\State Split $H_S$ into blocks $[S_0, S_1, S_2, S_3]$
+\For{$n = 0$ to $3$}
+  \State $\text{op} \gets \text{ops}[n \bmod |\text{ops}|]$
+  \State $R_n \gets \text{apply}(\text{op}, I_n, S_n)$ \Comment{See Table \ref{tab:operators}}
+\EndFor
+\State \Return $\text{SHA-256}(\text{hex}(R_0) \| \text{hex}(R_1) \| \text{hex}(R_2) \| \text{hex}(R_3))$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Secure Mode: Salt and Key Derivation}
+
+For production use, TUXOR is combined with a standard KDF:
+
+\begin{algorithm}
+\caption{TUXOR Secure Mode}
+\label{alg:secure}
+\begin{algorithmic}[1]
+\Require Identity $I_{in}$, Secret $S_{in}$, Cost $c$
+\Ensure Hardened tuxor, salt
+\State $\text{tuxor\_raw} \gets \text{TUXOR}(I_{in}, S_{in})$ \Comment{Algorithm \ref{alg:tuxor}}
+\State $\text{salt} \gets \text{random}(16\ \text{bytes})$
+\State $\text{input} \gets \text{tuxor\_raw} \| \text{`:'} \| \text{salt}$
+\State $\text{tuxor\_final} \gets \text{Argon2id}(\text{input}, \text{salt}, \text{memory}=2^c, t=4, p=2)$
+\State Store: $\text{tuxor\_final}$, $\text{salt}$, $c$
+\end{algorithmic}
+\end{algorithm}
+
+This two-layer approach provides:
+\begin{itemize}[noitemsep]
+  \item \textbf{Confusion layer} (TUXOR): operator-based secret combination
+  \item \textbf{Resistance layer} (Argon2id/scrypt): computational and memory cost
+\end{itemize}
+
+% ============================================================
+\section{Security Analysis}
+
+\subsection{Threat Model}
+
+We consider an attacker who has obtained a full database dump containing stored tuxor values, salts, and cost parameters. The attacker has knowledge of the TUXOR algorithm specification.
+
+\subsection{Attack Resistance}
+
+\subsubsection{Brute-Force Search Space}
+
+An attacker must guess three independent components:
+
+\begin{equation}
+\text{Search Space} = |T_I| \times |T_S| \times |O| \times |M|
+\end{equation}
+
+where $|T_I|$ and $|T_S|$ are the text spaces for identity and secret, $|O|$ is the operator combination space, and $|M| = 4$ is the inclusion modifier space.
+
+For the operator component alone:
+\begin{equation}
+|O| = \sum_{k=1}^{n} |\Omega|^k = \sum_{k=1}^{n} 10^k
+\end{equation}
+
+With $n=4$ operator positions (practical maximum), $|O| = 11{,}110$ combinations, contributing $\sim$13.4 bits of entropy. Combined with the modifier: $|O| \times |M| = 44{,}440$ ($\sim$15.4 bits).
+
+\subsubsection{Rainbow Tables}
+
+Rainbow tables are precomputed mappings from inputs to hashes. TUXOR resists these attacks because:
+\begin{enumerate}[noitemsep]
+  \item The tuxor is not a direct hash of any single known input
+  \item The operator combination creates a vast input space
+  \item In secure mode, the unique salt per user eliminates rainbow table applicability entirely
+\end{enumerate}
+
+\subsubsection{Database Compromise}
+
+A compromised database reveals only:
+\begin{itemize}[noitemsep]
+  \item The tuxor value (irreversible)
+  \item The salt and cost parameter (in secure mode)
+  \item The display identity (not used for authentication)
+\end{itemize}
+
+No username hash, password hash, or operator information is stored.
+
+\subsection{Non-Reversibility}
+
+The tuxor undergoes two layers of SHA-256 (block operations followed by final hash), making it computationally infeasible to decompose into its original components. The operator applied to each block pair is unknown to the attacker, creating $10^k$ possible decomposition paths per block.
+
+\subsection{Comparison with Existing Schemes}
+
+\begin{table}[h]
+\centering
+\caption{Comparison with Related Schemes}
+\label{tab:comparison}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Property & HMAC & SXR & LG & bcrypt & \textbf{TUXOR} \\
+\midrule
+Two independent hashes & No & No & No & No & \textbf{Yes} \\
+Block-level combination & No & Yes & No & No & \textbf{Yes} \\
+User-selected operation & No & No & No & No & \textbf{Yes} \\
+Operation as secret & No & No & No & No & \textbf{Yes} \\
+No credential storage & No & No & No & No & \textbf{Yes} \\
+Memory-hard & No & No & No & Yes$^*$ & Yes$^\dagger$ \\
+\bottomrule
+\multicolumn{6}{l}{\small $^*$bcrypt is CPU-hard. $^\dagger$Via Argon2id/scrypt in secure mode.}
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Implementation}
+
+\subsection{Reference Implementations}
+
+We provide implementations in three languages, all producing identical output for the same inputs:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{PHP}: Native 64-bit arithmetic with split 32-bit operations (no extensions required). Secure mode uses \texttt{password\_hash()} with \texttt{PASSWORD\_ARGON2ID}.
+  \item \textbf{JavaScript}: BigInt for 64-bit operations (Node.js 16+ and modern browsers). Secure mode uses \texttt{crypto.scrypt()}.
+  \item \textbf{Python}: Native arbitrary-precision integers. Secure mode uses \texttt{hashlib.scrypt()}.
+\end{itemize}
+
+\subsection{Test Vector}
+
+All implementations must produce the following output for conformance:
+
+\begin{lstlisting}
+Identity: "+tuxor"
+Secret:   "*algorithm#"
+Operators: [+, *, #]
+
+Tuxor: 663b623d1f5f78b197cfe54fbdbb47dcb679c8842e0bb138
+       d90e001aaa50fdb8
+\end{lstlisting}
+
+\subsection{Test Results}
+
+\begin{table}[h]
+\centering
+\caption{Test Suite Results}
+\label{tab:tests}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Implementation & Tests & Status \\
+\midrule
+PHP (Argon2id) & 35 & All passed \\
+Python (scrypt) & 34 & All passed \\
+JavaScript (scrypt) & 34 & All passed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Account Recovery}
+
+Since the tuxor is non-reversible and no individual credential is stored, account recovery requires a full credential reset. Each user registers a \textit{recovery contact}---either an email address or phone number. The system auto-detects the type based on format (presence of \texttt{@} for email, digits only for phone).
+
+Upon recovery, the user defines entirely new identity and secret credentials, and a new tuxor is computed and stored, replacing the previous one.
+
+% ============================================================
+\section{Discussion}
+
+\subsection{Limitations}
+
+\begin{enumerate}[noitemsep]
+  \item \textbf{User complexity}: The requirement for operators in both inputs increases cognitive load compared to traditional passwords.
+  \item \textbf{Recovery}: Forgetting the operator pattern results in complete credential loss, mitigated by the recovery mechanism.
+  \item \textbf{Custom scheme}: TUXOR has not undergone formal cryptographic audit. We recommend its use as a complementary layer rather than a standalone replacement.
+\end{enumerate}
+
+\subsection{Recommended Use Cases}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Internal/corporate systems} with trained users
+  \item \textbf{Machine-to-machine authentication} (APIs, microservices)
+  \item \textbf{Defense-in-depth layer} combined with standard KDFs
+  \item \textbf{High-security environments} where additional complexity is acceptable
+\end{itemize}
+
+\subsection{Future Work}
+
+\begin{itemize}[noitemsep]
+  \item Formal security proof under standard cryptographic assumptions
+  \item Performance benchmarking across platforms and hardware
+  \item Integration libraries for common frameworks (Laravel, Django, Express)
+  \item Hardware-accelerated implementation in C/Rust
+  \item User study on usability and memorability of operator-embedded credentials
+\end{itemize}
+
+% ============================================================
+\section{Conclusion}
+
+TUXOR introduces a novel concept in authentication: embedding the combining operation within the user's credentials as a secret. By requiring operator symbols in both identity and secret inputs, the algorithm creates a three-factor knowledge requirement (identity + secret + operations) that has no precedent in published cryptographic literature.
+
+The inclusion modifier \texttt{@} further multiplies the search space by controlling whether operators are hashed as part of the clean text, yielding four distinct modes. Combined with Argon2id or scrypt as a hardening layer, TUXOR provides both a confusion layer (unknown operations) and a resistance layer (computational cost).
+
+Reference implementations in PHP, JavaScript, and Python demonstrate cross-platform consistency, with all implementations producing identical tuxor values for the same inputs.
+
+The source code and full specification are available at \url{https://github.com/tuxormax/tuxores} under the GPL-3.0 license.
+
+% ============================================================
+\begin{thebibliography}{9}
+
+\bibitem{provos1999bcrypt}
+N. Provos and D. Mazi\`{e}res, ``A future-adaptable password scheme,'' in \textit{Proceedings of the USENIX Annual Technical Conference}, 1999.
+
+\bibitem{percival2009scrypt}
+C. Percival, ``Stronger key derivation via sequential memory-hard functions,'' in \textit{BSDCan}, 2009.
+
+\bibitem{biryukov2016argon2}
+A. Biryukov, D. Dinu, and D. Khovratovich, ``Argon2: New generation of memory-hard functions for password hashing and other applications,'' in \textit{IEEE European Symposium on Security and Privacy}, 2016.
+
+\bibitem{bellare1996hmac}
+M. Bellare, R. Canetti, and H. Krawczyk, ``Keying hash functions for message authentication,'' in \textit{CRYPTO'96}, Springer, 1996.
+
+\bibitem{polpong2021sxr}
+P. Polpong, ``SXR: A new password hashing algorithm based on XOR and rotation,'' \textit{International Journal of Electrical and Computer Engineering (IJECE)}, vol. 11, no. 6, 2021.
+
+\bibitem{anbari2024lg}
+M. Anbari et al., ``Enhancing the resistance of password hashing using binary randomization through logical gates,'' \textit{International Journal of Electrical and Computer Engineering (IJECE)}, 2024.
+
+\bibitem{fischlin2013combiners}
+M. Fischlin and A. Lehmann, ``Multi-property preserving combiners for hash functions,'' \textit{Journal of Cryptology}, vol. 26, 2013.
+
+\end{thebibliography}
+
+\end{document}

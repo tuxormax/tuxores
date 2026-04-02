@@ -172,6 +172,33 @@ def verify(identity: str, secret: str, stored_tuxor: str) -> bool:
     return hmac.compare_digest(computed, stored_tuxor)
 
 
+def compute_secure(identity: str, secret: str, salt: str = None, cost: int = 14) -> dict:
+    """Compute with salt + scrypt hardening (secure mode)."""
+    import os
+    tuxor_raw = compute(identity, secret)
+    if salt is None:
+        salt = os.urandom(16).hex()
+
+    input_bytes = (tuxor_raw + ':' + salt).encode('utf-8')
+    salt_bytes = salt.encode('utf-8')
+    derived = hashlib.scrypt(input_bytes, salt=salt_bytes, n=2**cost, r=8, p=1, dklen=64)
+
+    return {
+        'tuxor': derived.hex(),
+        'salt': salt,
+        'cost': cost,
+    }
+
+
+def verify_secure(identity: str, secret: str, stored_tuxor: str, salt: str, cost: int = 14) -> bool:
+    """Verify with salt + scrypt (secure mode)."""
+    tuxor_raw = compute(identity, secret)
+    input_bytes = (tuxor_raw + ':' + salt).encode('utf-8')
+    salt_bytes = salt.encode('utf-8')
+    derived = hashlib.scrypt(input_bytes, salt=salt_bytes, n=2**cost, r=8, p=1, dklen=64)
+    return hmac.compare_digest(derived.hex(), stored_tuxor)
+
+
 def validate(input_str: str) -> bool:
     """Validate that an input string contains at least one operator."""
     parsed = parse(input_str)

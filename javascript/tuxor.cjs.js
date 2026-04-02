@@ -167,9 +167,44 @@ function verify(identity, secret, storedTuxor) {
     return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(storedTuxor));
 }
 
+function computeSecure(identity, secret, salt, cost) {
+    cost = cost || 14;
+    const tuxorRaw = compute(identity, secret);
+    if (!salt) {
+        salt = crypto.randomBytes(16).toString('hex');
+    }
+    const input = tuxorRaw + ':' + salt;
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(input, salt, 64, { N: Math.pow(2, cost), r: 8, p: 1 }, (err, derived) => {
+            if (err) return reject(err);
+            resolve({
+                tuxor: derived.toString('hex'),
+                salt: salt,
+                cost: cost,
+            });
+        });
+    });
+}
+
+function verifySecure(identity, secret, storedTuxor, salt, cost) {
+    cost = cost || 14;
+    const tuxorRaw = compute(identity, secret);
+    const input = tuxorRaw + ':' + salt;
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(input, salt, 64, { N: Math.pow(2, cost), r: 8, p: 1 }, (err, derived) => {
+            if (err) return reject(err);
+            try {
+                resolve(crypto.timingSafeEqual(Buffer.from(derived.toString('hex')), Buffer.from(storedTuxor)));
+            } catch (e) {
+                resolve(false);
+            }
+        });
+    });
+}
+
 function validate(input) {
     const parsed = parse(input);
     return parsed.operators.length > 0 && parsed.clean !== '';
 }
 
-module.exports = { compute, verify, validate, parse };
+module.exports = { compute, verify, validate, parse, computeSecure, verifySecure };

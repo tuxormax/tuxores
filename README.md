@@ -105,48 +105,40 @@ The system auto-detects the type. On recovery, the user sets entirely new creden
 ```php
 require_once 'php/Tuxor.php';
 
-// Register
+// Basic mode
 $tuxor = Tuxor::compute('+alice^', '*MyPassword#');
-// Store $tuxor in database
+$valid = Tuxor::verify('+alice^', '*MyPassword#', $tuxor);
 
-// Login
-$valid = Tuxor::verify('+alice^', '*MyPassword#', $storedTuxor);
-
-// Validate input has operators
-Tuxor::validate('+alice^');  // true
-Tuxor::validate('alice');    // false
+// Secure mode (Argon2id + salt) — recommended for production
+$result = Tuxor::computeSecure('+alice^', '*MyPassword#');
+// Store $result['tuxor'], $result['salt'], $result['cost']
+$valid = Tuxor::verifySecure('+alice^', '*MyPassword#', $result['tuxor'], $result['salt']);
 ```
 
 #### JavaScript
 
 ```javascript
-import { compute, verify, validate } from './javascript/tuxor.js';
+const { compute, verify, computeSecure, verifySecure } = require('./javascript/tuxor.cjs.js');
 
-// Register
-const tuxor = await compute('+alice^', '*MyPassword#');
+// Basic mode
+const tuxor = compute('+alice^', '*MyPassword#');
 
-// Login
-const valid = await verify('+alice^', '*MyPassword#', storedTuxor);
-
-// Validate
-validate('+alice^');  // true
-validate('alice');    // false
+// Secure mode (scrypt + salt) — recommended for production
+const result = await computeSecure('+alice^', '*MyPassword#');
+const valid = await verifySecure('+alice^', '*MyPassword#', result.tuxor, result.salt, result.cost);
 ```
 
 #### Python
 
 ```python
-from python.tuxor import compute, verify, validate
+from python.tuxor import compute, verify, compute_secure, verify_secure
 
-# Register
+# Basic mode
 tuxor = compute('+alice^', '*MyPassword#')
 
-# Login
-valid = verify('+alice^', '*MyPassword#', stored_tuxor)
-
-# Validate
-validate('+alice^')  # True
-validate('alice')    # False
+# Secure mode (scrypt + salt) — recommended for production
+result = compute_secure('+alice^', '*MyPassword#')
+valid = verify_secure('+alice^', '*MyPassword#', result['tuxor'], result['salt'], result['cost'])
 ```
 
 ### Running Tests
@@ -280,48 +272,40 @@ El sistema auto-detecta el tipo. Al recuperar, el usuario define credenciales co
 ```php
 require_once 'php/Tuxor.php';
 
-// Registro
+// Modo básico
 $tuxor = Tuxor::compute('+alice^', '*MiClave#');
-// Guardar $tuxor en la base de datos
+$valido = Tuxor::verify('+alice^', '*MiClave#', $tuxor);
 
-// Login
-$valido = Tuxor::verify('+alice^', '*MiClave#', $tuxorAlmacenado);
-
-// Validar que la entrada tiene operadores
-Tuxor::validate('+alice^');  // true
-Tuxor::validate('alice');    // false
+// Modo seguro (Argon2id + salt) — recomendado para producción
+$resultado = Tuxor::computeSecure('+alice^', '*MiClave#');
+// Guardar $resultado['tuxor'], $resultado['salt'], $resultado['cost']
+$valido = Tuxor::verifySecure('+alice^', '*MiClave#', $resultado['tuxor'], $resultado['salt']);
 ```
 
 #### JavaScript
 
 ```javascript
-import { compute, verify, validate } from './javascript/tuxor.js';
+const { compute, verify, computeSecure, verifySecure } = require('./javascript/tuxor.cjs.js');
 
-// Registro
-const tuxor = await compute('+alice^', '*MiClave#');
+// Modo básico
+const tuxor = compute('+alice^', '*MiClave#');
 
-// Login
-const valido = await verify('+alice^', '*MiClave#', tuxorAlmacenado);
-
-// Validar
-validate('+alice^');  // true
-validate('alice');    // false
+// Modo seguro (scrypt + salt) — recomendado para producción
+const resultado = await computeSecure('+alice^', '*MiClave#');
+const valido = await verifySecure('+alice^', '*MiClave#', resultado.tuxor, resultado.salt, resultado.cost);
 ```
 
 #### Python
 
 ```python
-from python.tuxor import compute, verify, validate
+from python.tuxor import compute, verify, compute_secure, verify_secure
 
-# Registro
+# Modo básico
 tuxor = compute('+alice^', '*MiClave#')
 
-# Login
-valido = verify('+alice^', '*MiClave#', tuxor_almacenado)
-
-# Validar
-validate('+alice^')  # True
-validate('alice')    # False
+# Modo seguro (scrypt + salt) — recomendado para producción
+resultado = compute_secure('+alice^', '*MiClave#')
+valido = verify_secure('+alice^', '*MiClave#', resultado['tuxor'], resultado['salt'], resultado['cost'])
 ```
 
 ### Ejecutar Tests
